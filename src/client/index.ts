@@ -647,12 +647,15 @@ function applyRealDshClient(
       }
     }, [address, deckIdFromUri, parsedAddress.filePath, parsedAddress.sessionId]);
 
-    return React.createElement(PptWorkspace, {
+    return React.createElement('div', {
+      className: 'dsh-plugin-root dsh-plugin-pane-root',
+      style: { width: '100%', height: '100%', minHeight: 0, display: 'flex' },
+    }, React.createElement(PptWorkspace, {
       ctx: effectiveCtx,
       selectionBus: bus,
       initialActiveDeckId: deckIdFromUri ?? props.activeDeckId,
       onCollapseSidebar: () => ctx.sidebarRight?.toggleExpanded?.(false),
-    });
+    }));
   };
 
   const TurnPptArtifactDock: React.FC<RealConversationTurnTailSlotProps> = (props) => {
@@ -691,25 +694,29 @@ function applyRealDshClient(
     };
 
     return React.createElement(
-      React.Fragment,
-      null,
-      artifacts.map((art) =>
-        React.createElement(ArtifactCard, {
-          key: art.id || art.fileName,
-          artifact: art,
-          onOpenArtifact: openArtifact,
-          onOpenWindow: (item) => {
-            openArtifact(item);
-            ctx.sidebarRight?.toggleExpanded?.(true);
-          },
-          onShareArtifact: (item) => {
-            const deck = item.fileId
-              ? effectiveBridge.getDeckById(item.fileId)
-              : effectiveBridge.getDecks().find((d) => d.file_name === item.fileName);
-            void exportArtifactToPptx(deck, effectiveBridge);
-          },
-          onViewAllArtifacts: () => openArtifact(art),
-        }),
+      'div',
+      { className: 'dsh-plugin-root' },
+      React.createElement(
+        React.Fragment,
+        null,
+        artifacts.map((art) =>
+          React.createElement(ArtifactCard, {
+            key: art.id || art.fileName,
+            artifact: art,
+            onOpenArtifact: openArtifact,
+            onOpenWindow: (item) => {
+              openArtifact(item);
+              ctx.sidebarRight?.toggleExpanded?.(true);
+            },
+            onShareArtifact: (item) => {
+              const deck = item.fileId
+                ? effectiveBridge.getDeckById(item.fileId)
+                : effectiveBridge.getDecks().find((d) => d.file_name === item.fileName);
+              void exportArtifactToPptx(deck, effectiveBridge);
+            },
+            onViewAllArtifacts: () => openArtifact(art),
+          }),
+        ),
       ),
     );
   };
@@ -724,42 +731,72 @@ function applyRealDshClient(
       };
     }, [props.inputActions]);
 
-    return React.createElement(SelectionChipBar, {
-      selectionBus: bus,
-      onFocusSelection: (target) => {
-        effectiveBridge.triggerFocusTarget(target);
-        const targetFileId = target.fileId || effectiveBridge.getActiveDeckId();
-        if (targetFileId) {
-          void ctx.sidebarRight?.openResource(
-            `${RESOURCE_DECK_PREFIX}${encodeURIComponent(targetFileId)}`,
-          );
-        }
-        const expanded =
-          typeof ctx.sidebarRight?.isExpanded === 'function'
-            ? ctx.sidebarRight.isExpanded()
-            : ctx.sidebarRight?.isExpanded;
-        if (expanded === false || expanded === undefined) {
-          ctx.sidebarRight?.toggleExpanded?.(true);
-        }
-      },
-      onCopyToast: (msg) => effectiveBridge.onToast?.(msg),
-      onInsertPrompt: (serializedPrompt) => {
-        const actions = props.inputActions;
-        if (actions?.insertText) {
-          const span = actions.captureInsertion?.();
-          actions.insertText(serializedPrompt, span);
-          effectiveBridge.onToast?.('已将选区引用插入到对话输入框');
-        } else if (actions?.setDraft) {
-          actions.setDraft(serializedPrompt);
-          effectiveBridge.onToast?.('已将选区引用写入对话草稿');
-        } else {
+    return React.createElement(
+      'div',
+      { className: 'dsh-plugin-root' },
+      React.createElement(SelectionChipBar, {
+        selectionBus: bus,
+        onFocusSelection: (target) => {
+          effectiveBridge.triggerFocusTarget(target);
+          const targetFileId = target.fileId || effectiveBridge.getActiveDeckId();
+          if (targetFileId) {
+            void ctx.sidebarRight?.openResource(
+              `${RESOURCE_DECK_PREFIX}${encodeURIComponent(targetFileId)}`,
+            );
+          }
+          const expanded =
+            typeof ctx.sidebarRight?.isExpanded === 'function'
+              ? ctx.sidebarRight.isExpanded()
+              : ctx.sidebarRight?.isExpanded;
+          if (expanded === false || expanded === undefined) {
+            ctx.sidebarRight?.toggleExpanded?.(true);
+          }
+        },
+        onCopyToast: (msg) => effectiveBridge.onToast?.(msg),
+        onInsertPrompt: (serializedPrompt) => {
+          // 真实宿主通过 session 标准 props 注入 inputActions（含 insertQuote/insertText/setDraft）。
+          // 优先 insertQuote：专门把选区作为“引用块/引文”插入输入框，不依赖 span 有效性，
+          // 正是「引用的内容出现在输入框」的官方方式。
+          const actions = props.inputActions ?? latestInputActions ?? undefined;
+          const summary = 'PPT 选区引用';
+          if (actions && typeof (actions as any).insertQuote === 'function') {
+            const ok = (actions as any).insertQuote(serializedPrompt, summary);
+            if (ok !== false) {
+              effectiveBridge.onToast?.('已将选区引用插入到对话输入框');
+              return;
+            }
+          }
+          if (actions?.insertText) {
+            const span = actions.captureInsertion?.();
+            const ok = actions.insertText(serializedPrompt, span as any);
+            if (ok !== false) {
+              effectiveBridge.onToast?.('已将选区引用插入到对话输入框');
+              return;
+            }
+          }
+          if (actions?.setDraft) {
+            actions.setDraft(serializedPrompt);
+            effectiveBridge.onToast?.('已将选区引用写入对话草稿');
+            return;
+          }
+          if (typeof effectiveBridge.onSendComposerPrompt === 'function') {
+            try {
+              effectiveBridge.onSendComposerPrompt(serializedPrompt, [], {
+                source: 'ppt-studio',
+              });
+              effectiveBridge.onToast?.('已将选区引用发送到对话');
+              return;
+            } catch {
+              /* fall through */
+            }
+          }
           if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
             navigator.clipboard.writeText(serializedPrompt).catch(() => {});
+            effectiveBridge.onToast?.('已复制选区引用到剪贴板（当前环境未提供输入框接口）');
           }
-          effectiveBridge.onToast?.('已复制选区引用');
-        }
-      },
-    });
+        },
+      }),
+    );
   };
 
   // 入口 2：注册右侧栏标签 + Guide 新建入口

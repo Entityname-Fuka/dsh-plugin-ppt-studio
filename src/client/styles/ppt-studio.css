@@ -26,28 +26,39 @@
   --dsh-font-mono: "JetBrains Mono", "Cascadia Code", Consolas, monospace;
 }
 
-* {
+/*
+ * 作用域隔离：插件样式注入到宿主 document.head 时，绝不能改动宿主全局布局。
+ * 所有全局性重置规则都收窄到插件根容器 `.dsh-plugin-root` 内部
+ * （含 portal 挂到 body 的放映模态），避免影响 DSH 其它界面。
+ * 仅在独立桌面壳（#root 由本插件独占）里才允许全屏布局。
+ */
+.dsh-plugin-root,
+.dsh-plugin-root *,
+.dsh-plugin-root *::before,
+.dsh-plugin-root *::after {
   box-sizing: border-box;
 }
 
-html,
-body,
-#root {
+.dsh-plugin-root {
+  font-family: var(--dsh-font-sans);
+  color: var(--dsh-text-primary);
+  -webkit-font-smoothing: antialiased;
+}
+
+.dsh-plugin-root button,
+.dsh-plugin-root input,
+.dsh-plugin-root textarea,
+.dsh-plugin-root select {
+  font-family: inherit;
+}
+
+/* 独立桌面壳才铺满视口；真实宿主内由槽位容器自行决定尺寸 */
+.dsh-plugin-root.dsh-desktop-shell-root {
   margin: 0;
   padding: 0;
   width: 100%;
   height: 100%;
-  font-family: var(--dsh-font-sans);
-  color: var(--dsh-text-primary);
   background: var(--dsh-bg-main);
-  -webkit-font-smoothing: antialiased;
-}
-
-button,
-input,
-textarea,
-select {
-  font-family: inherit;
 }
 
 /* ============================================================================

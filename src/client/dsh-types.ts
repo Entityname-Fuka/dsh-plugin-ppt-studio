@@ -123,7 +123,8 @@ export interface RealSlotsService {
 
 export interface RealInputActions {
   captureInsertion: () => unknown;
-  insertText: (text: string, span?: unknown) => void;
+  insertQuote?: (text: string, summary?: string) => boolean;
+  insertText: (text: string, span?: unknown) => boolean | void;
   setDraft: (text: string) => void;
   submit: () => Promise<void> | void;
 }
