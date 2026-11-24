@@ -185,6 +185,7 @@ export const SlideshowModal: React.FC<SlideshowModalProps> = ({
           widthPt={deck.width_pt}
           heightPt={deck.height_pt}
           scale={scale}
+          deckId={deck.file_id}
         />
       </div>
 

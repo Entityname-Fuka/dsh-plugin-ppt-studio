@@ -1063,6 +1063,7 @@ export const PptWorkspace: React.FC<PptWorkspaceProps> = ({
                   widthPt={activeDeck.width_pt}
                   heightPt={activeDeck.height_pt}
                   scale={158 / (activeDeck.width_pt * PT_TO_PX_RATIO)}
+                  deckId={activeDeck.file_id}
                 />
               </div>
               <div style={{ fontSize: 11.5, marginTop: 5, color: '#374151', fontWeight: 500 }}>
@@ -1079,6 +1080,7 @@ export const PptWorkspace: React.FC<PptWorkspaceProps> = ({
               widthPt={activeDeck.width_pt}
               heightPt={activeDeck.height_pt}
               activePageIndex={activePageIndex}
+              deckId={activeDeck.file_id}
               onSelectPage={setActivePageIndex}
               onSelectWholeSlide={(idx) => {
                 setActivePageIndex(idx);

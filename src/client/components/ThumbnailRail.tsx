@@ -15,6 +15,8 @@ export interface ThumbnailRailProps {
   onDuplicatePage: (pageIndex: number) => void;
   onDeletePage: (pageIndex: number) => void;
   onMovePage: (fromIndex: number, toIndex: number) => void;
+  /** 当前 deck id，用于解析相对/本地图片路径 */
+  deckId?: string;
 }
 
 export const ThumbnailRail: React.FC<ThumbnailRailProps> = ({
@@ -28,6 +30,7 @@ export const ThumbnailRail: React.FC<ThumbnailRailProps> = ({
   onDuplicatePage,
   onDeletePage,
   onMovePage,
+  deckId,
 }) => {
   const [dragIndex, setDragIndex] = useState<number | null>(null);
   const [dragOverIndex, setDragOverIndex] = useState<number | null>(null);
@@ -90,6 +93,7 @@ export const ThumbnailRail: React.FC<ThumbnailRailProps> = ({
                   widthPt={widthPt}
                   heightPt={heightPt}
                   scale={thumbScale}
+                  deckId={deckId}
                 />
                 <div
                   className="ppt-thumb-hover-actions"
