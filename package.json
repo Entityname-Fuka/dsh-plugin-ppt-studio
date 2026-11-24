@@ -16,6 +16,7 @@
   },
   "files": [
     "dist",
+    "scripts/build-plugin.mjs",
     "scripts/launch.mjs",
     "cordis.patch.yml",
     "package.json",
@@ -56,7 +57,8 @@
     "test": "vitest run",
     "build:preview": "vite build",
     "build:plugin": "node scripts/build-plugin.mjs",
-    "build": "npm run build:preview && npm run build:plugin"
+    "build": "npm run build:preview && npm run build:plugin",
+    "prepare": "npm run build"
   },
   "dependencies": {
     "jszip": "^3.10.1",
