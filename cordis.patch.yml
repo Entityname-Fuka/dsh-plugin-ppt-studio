@@ -1,0 +1,7 @@
+# DSH Desktop PPT Studio bundle patch
+- insert:
+    - id: ppt-studio
+      name: dsh-plugin-ppt-studio
+      config:
+        requireDesignMd: false
+        loadSampleDeck: false

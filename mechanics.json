@@ -1,0 +1,383 @@
+{
+  "version": 1,
+  "values": [
+    {
+      "name": "workbuddy_pe_entry_point",
+      "group": "binary",
+      "value": "0x0000000144d4d450",
+      "source": "WorkBuddy.exe objdump -f (ev_f581c299d23eb2d3b33f3e1667f1e41a257e975e43cdcf811fc09df9253654cb)"
+    },
+    {
+      "name": "workbuddy_electron_only_load_from_asar",
+      "group": "binary",
+      "value": true,
+      "source": "WorkBuddy.exe .rdata VMA 0x000000014a110950 / offset 0x0a10fb50 (inspect_electron_fuses)"
+    },
+    {
+      "name": "workbuddy_electron_asar_integrity_validation",
+      "group": "binary",
+      "value": true,
+      "source": "WorkBuddy.exe .rdata VMA 0x000000014a110950 & .rsrc VMA 0x000000014c5c8c70"
+    },
+    {
+      "name": "supervisor_engine_path_validator_addr",
+      "group": "binary_ghidra",
+      "value": "0x140003ed0",
+      "source": "workbuddy-editor-sdk-supervisor.exe FUN_140003ed0 (Ghidra 12.1.4 ev_7a04b1f8f4b4f159ec856032960defc73da021afb8d5d98d2aeef3529938b83c)"
+    },
+    {
+      "name": "supervisor_cli_parser_addr",
+      "group": "binary_ghidra",
+      "value": "0x140004b80",
+      "source": "workbuddy-editor-sdk-supervisor.exe FUN_140004b80 (Ghidra 12.1.4 ev_eb81ad1711a69cd24f750f14c375acaa5b4823669756b406cb0847bfc7768ec0)"
+    },
+    {
+      "name": "supervisor_lifecycle_main_addr",
+      "group": "binary_ghidra",
+      "value": "0x1400063a0",
+      "source": "workbuddy-editor-sdk-supervisor.exe FUN_1400063a0 (Ghidra 12.1.4 ev_d0014ad000854feb7906b63e065701c2f238e3fffe9959a9b9f22ae39e35831a)"
+    },
+    {
+      "name": "supervisor_start_handshake_payload",
+      "group": "binary_ghidra",
+      "value": "{\"command\":\"start\"}",
+      "source": "workbuddy-editor-sdk-supervisor.exe FUN_1400063a0 (exact 19-byte / 0x13 check)"
+    },
+    {
+      "name": "supervisor_control_line_max_bytes",
+      "group": "binary_ghidra",
+      "value": 128,
+      "unit": "bytes",
+      "source": "workbuddy-editor-sdk-supervisor.exe FUN_1400063a0 (0x80 cap)"
+    },
+    {
+      "name": "supervisor_breakaway_creation_flags",
+      "group": "binary_ghidra",
+      "value": "0x01000200",
+      "source": "workbuddy-editor-sdk-supervisor.exe FUN_1400063a0 (CREATE_BREAKAWAY_FROM_JOB fallback on nested job failure, log string 0x140025d00)"
+    },
+    {
+      "name": "supervisor_terminate_wait_ms",
+      "group": "binary_ghidra",
+      "value": 5000,
+      "unit": "ms",
+      "source": "workbuddy-editor-sdk-supervisor.exe FUN_1400063a0 WaitForSingleObject(..., 5000)"
+    },
+    {
+      "name": "supervisor_job_drain_timeout_ms",
+      "group": "binary_ghidra",
+      "value": 1000,
+      "unit": "ms",
+      "source": "workbuddy-editor-sdk-supervisor.exe FUN_1400063a0 QueryInformationJobObject drain loop"
+    },
+    {
+      "name": "supervisor_job_drain_poll_ms",
+      "group": "binary_ghidra",
+      "value": 10,
+      "unit": "ms",
+      "source": "workbuddy-editor-sdk-supervisor.exe FUN_1400063a0 Sleep(10)"
+    },
+    {
+      "name": "job_object_init_fn_addr",
+      "group": "binary_ghidra",
+      "value": "0x1800014eb",
+      "source": "job-object.node FUN_1800014eb (Ghidra 12.1.4 ev_96a74505c6f1ff71df4380f339f8938752816a66ce8664af60c2c9160b2050ea)"
+    },
+    {
+      "name": "job_object_limit_flags",
+      "group": "binary_ghidra",
+      "value": "0x2400",
+      "source": "job-object.node FUN_1800014eb (JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE 0x2000 | JOB_OBJECT_LIMIT_DIE_ON_UNHANDLED_EXCEPTION 0x0400)"
+    },
+    {
+      "name": "job_object_extended_limit_struct_size",
+      "group": "binary_ghidra",
+      "value": 144,
+      "unit": "bytes",
+      "source": "job-object.node FUN_1800014eb (0x90 bytes passed to SetInformationJobObject)"
+    },
+    {
+      "name": "job_object_module_pin_flags",
+      "group": "binary_ghidra",
+      "value": 5,
+      "source": "job-object.node FUN_1800014eb GetModuleHandleExW(5, ...)"
+    },
+    {
+      "name": "job_object_ensure_napi_addr",
+      "group": "binary_ghidra",
+      "value": "0x1800015f3",
+      "source": "job-object.node FUN_1800015f3 / registration 0x1800017ce (ensureKillOnCloseJob)"
+    },
+    {
+      "name": "job_object_is_in_job_napi_addr",
+      "group": "binary_ghidra",
+      "value": "0x180001921",
+      "source": "job-object.node FUN_180001921 / registration 0x18000201e (isProcessInJob)"
+    },
+    {
+      "name": "engine_default_port",
+      "group": "engine_runtime",
+      "value": 39099,
+      "source": "@tencent/tencent-docs-ai-engine@0.2.196-wb"
+    },
+    {
+      "name": "engine_port_scan_limit",
+      "group": "engine_runtime",
+      "value": 100,
+      "source": "@tencent/tencent-docs-ai-engine@0.2.196-wb"
+    },
+    {
+      "name": "engine_start_retry_limit",
+      "group": "engine_runtime",
+      "value": 5,
+      "source": "@tencent/tencent-docs-ai-engine@0.2.196-wb"
+    },
+    {
+      "name": "engine_health_poll_interval_ms",
+      "group": "engine_runtime",
+      "value": 100,
+      "unit": "ms",
+      "source": "@tencent/tencent-docs-ai-engine@0.2.196-wb GET /health"
+    },
+    {
+      "name": "engine_health_timeout_ms",
+      "group": "engine_runtime",
+      "value": 60000,
+      "unit": "ms",
+      "source": "@tencent/tencent-docs-ai-engine@0.2.196-wb GET /health"
+    },
+    {
+      "name": "engine_localapi_timeout_ms",
+      "group": "engine_runtime",
+      "value": 10000,
+      "unit": "ms",
+      "source": "@tencent/tencent-docs-ai-engine@0.2.196-wb /localapi/*"
+    },
+    {
+      "name": "engine_supported_slide_extensions",
+      "group": "engine_runtime",
+      "value": ".pptx,.ppt,.pps,.pot,.pptm,.ppsx,.ppsm,.potx,.potm",
+      "source": "@tencent/tencent-docs-ai-engine@0.2.196-wb slide preview contract"
+    },
+    {
+      "name": "host_theme_changed_event",
+      "group": "ui",
+      "value": "workbuddy:themeChanged",
+      "source": "@tencent/tencent-docs-ai-engine@0.2.196-wb postMessage"
+    },
+    {
+      "name": "host_locale_changed_event",
+      "group": "ui",
+      "value": "workbuddy:localeChanged",
+      "source": "@tencent/tencent-docs-ai-engine@0.2.196-wb postMessage"
+    },
+    {
+      "name": "slide_canvas_width_pt",
+      "group": "coordinates",
+      "value": 960,
+      "unit": "pt",
+      "source": "tencent-private-docs/references/slideengine_references.md:782"
+    },
+    {
+      "name": "slide_canvas_height_pt",
+      "group": "coordinates",
+      "value": 540,
+      "unit": "pt",
+      "source": "tencent-private-docs/references/slideengine_references.md:782"
+    },
+    {
+      "name": "slide_canvas_width_px",
+      "group": "coordinates",
+      "value": 1280,
+      "unit": "px",
+      "source": "sidebar-pptx-generator/references/component-slide.md"
+    },
+    {
+      "name": "slide_canvas_height_px",
+      "group": "coordinates",
+      "value": 720,
+      "unit": "px",
+      "source": "sidebar-pptx-generator/references/component-slide.md"
+    },
+    {
+      "name": "emu_per_pt",
+      "group": "ooxml",
+      "value": 12700,
+      "unit": "EMU/pt",
+      "source": "tencent-private-docs/references/slideengine_references.md:459"
+    },
+    {
+      "name": "ooxml_widescreen_cx_emu",
+      "group": "ooxml",
+      "value": 12192000,
+      "unit": "EMU",
+      "source": "renderer/assets/bootstrap-BBdb8JCl.js slidesEntries()"
+    },
+    {
+      "name": "ooxml_widescreen_cy_emu",
+      "group": "ooxml",
+      "value": 6858000,
+      "unit": "EMU",
+      "source": "renderer/assets/bootstrap-BBdb8JCl.js slidesEntries()"
+    },
+    {
+      "name": "aspect_ratio_16_9_enum",
+      "group": "ooxml",
+      "value": 2,
+      "source": "tencent-private-docs/references/slideengine_references.md:1831"
+    },
+    {
+      "name": "aspect_ratio_4_3_enum",
+      "group": "ooxml",
+      "value": 1,
+      "source": "tencent-private-docs/references/slideengine_references.md:1831"
+    },
+    {
+      "name": "zone_title_max_y_px",
+      "group": "layout",
+      "value": 120,
+      "unit": "px",
+      "source": "sidebar-pptx-generator/references/design-principle.md"
+    },
+    {
+      "name": "zone_content_max_y_px",
+      "group": "layout",
+      "value": 660,
+      "unit": "px",
+      "source": "sidebar-pptx-generator/references/design-principle.md"
+    },
+    {
+      "name": "safe_margin_horizontal_px",
+      "group": "layout",
+      "value": 60,
+      "unit": "px",
+      "source": "sidebar-pptx-generator/references/design-principle.md"
+    },
+    {
+      "name": "office_window_default_width",
+      "group": "ui",
+      "value": 1440,
+      "unit": "px",
+      "source": "renderer/assets/builtin-window-apps-DULS9NhF.js"
+    },
+    {
+      "name": "office_window_default_height",
+      "group": "ui",
+      "value": 900,
+      "unit": "px",
+      "source": "renderer/assets/builtin-window-apps-DULS9NhF.js"
+    },
+    {
+      "name": "ribbon_tab_count",
+      "group": "ui",
+      "value": 7,
+      "source": "reference/picture-1.png (开始/插入/美化/切换/动画/放映/视图)"
+    },
+    {
+      "name": "default_canvas_zoom_percent",
+      "group": "ui",
+      "value": 39,
+      "unit": "%",
+      "source": "reference/picture-1.png status bar"
+    },
+    {
+      "name": "selection_event_changed",
+      "group": "selection_protocol",
+      "value": "docs:selectionChanged",
+      "source": "renderer/assets/contexts-DgzzFjnf.js offset 6509115"
+    },
+    {
+      "name": "selection_event_send",
+      "group": "selection_protocol",
+      "value": "docs:selectionSend",
+      "source": "renderer/assets/office-selection-wakeup-BlYISva8.js"
+    },
+    {
+      "name": "selection_uri_scheme",
+      "group": "selection_protocol",
+      "value": "tdoc-selection://",
+      "source": "renderer/assets/contexts-DgzzFjnf.js offset 6509115"
+    },
+    {
+      "name": "selection_mention_type",
+      "group": "selection_protocol",
+      "value": "tencentDocsSelection",
+      "source": "renderer/assets/contexts-DgzzFjnf.js offset 6509115"
+    },
+    {
+      "name": "selection_default_sequence_epoch",
+      "group": "selection_protocol",
+      "value": "__legacy_epoch__",
+      "source": "renderer/assets/contexts-DgzzFjnf.js toActiveDocumentSelection"
+    },
+    {
+      "name": "selection_wakeup_max_retries",
+      "group": "selection_protocol",
+      "value": 20,
+      "source": "renderer/assets/office-selection-wakeup-BlYISva8.js"
+    },
+    {
+      "name": "selection_wakeup_retry_interval_ms",
+      "group": "selection_protocol",
+      "value": 100,
+      "unit": "ms",
+      "source": "renderer/assets/office-selection-wakeup-BlYISva8.js"
+    },
+    {
+      "name": "selection_sent_dedup_cache_max",
+      "group": "selection_protocol",
+      "value": 100,
+      "source": "renderer/assets/office-selection-wakeup-BlYISva8.js"
+    },
+    {
+      "name": "selection_index_base",
+      "group": "selection_protocol",
+      "value": 0,
+      "source": "skills/workbuddy-local-office-edit/slide.md:18-20"
+    },
+    {
+      "name": "zorder_bring_to_front_op",
+      "group": "slide_tools",
+      "value": 0,
+      "source": "tencent-private-docs/references/slideengine_references.md:850"
+    },
+    {
+      "name": "zorder_send_to_back_op",
+      "group": "slide_tools",
+      "value": 1,
+      "source": "tencent-private-docs/references/slideengine_references.md:850"
+    },
+    {
+      "name": "zorder_bring_forward_op",
+      "group": "slide_tools",
+      "value": 2,
+      "source": "tencent-private-docs/references/slideengine_references.md:850"
+    },
+    {
+      "name": "zorder_send_backward_op",
+      "group": "slide_tools",
+      "value": 3,
+      "source": "tencent-private-docs/references/slideengine_references.md:850"
+    },
+    {
+      "name": "free_marquee_min_drag_pt",
+      "group": "selection_protocol",
+      "value": 6,
+      "unit": "pt",
+      "estimated": true
+    },
+    {
+      "name": "snap_guide_threshold_pt",
+      "group": "ui",
+      "value": 5,
+      "unit": "pt",
+      "estimated": true
+    },
+    {
+      "name": "free_marquee_payload_extended_fields",
+      "group": "selection_protocol",
+      "value": "page_index,shape_ids,shape_indices,bbox_pt,selection_mode,elements",
+      "estimated": true
+    }
+  ]
+}

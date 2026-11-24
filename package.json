@@ -1,0 +1,78 @@
+{
+  "name": "dsh-plugin-ppt-studio",
+  "version": "1.0.0",
+  "description": "DSH Desktop PPT generation, editing, and fine-grained spatial context indexing plugin",
+  "type": "module",
+  "main": "./dist/server/index.js",
+  "bin": {
+    "dsh-plugin-ppt-studio": "./scripts/launch.mjs",
+    "dsh-ppt-studio": "./scripts/launch.mjs"
+  },
+  "exports": {
+    ".": "./dist/server/index.js",
+    "./client": "./dist/client/index.js",
+    "./core": "./dist/core/index.js",
+    "./package.json": "./package.json"
+  },
+  "files": [
+    "dist",
+    "scripts/launch.mjs",
+    "cordis.patch.yml",
+    "package.json",
+    "README.md"
+  ],
+  "keywords": [
+    "dsh-plugin",
+    "deepseek-harness",
+    "ppt",
+    "pptx",
+    "slide-editor"
+  ],
+  "dsh": {
+    "engines": {
+      "dsh": ">=0.1.7"
+    },
+    "bundle": {
+      "patch": "./cordis.patch.yml"
+    },
+    "client": {
+      "platform": "web",
+      "inject": [
+        "@deepseek-ai/dsh-client-ui-sidebar-right",
+        "@deepseek-ai/dsh-client-ui-conversation",
+        "@deepseek-ai/dsh-client-ui-chat"
+      ]
+    }
+  },
+  "peerDependencies": {
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0"
+  },
+  "scripts": {
+    "dev": "vite",
+    "preview": "vite preview --host 127.0.0.1",
+    "start": "node scripts/launch.mjs",
+    "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "build:preview": "vite build",
+    "build:plugin": "node scripts/build-plugin.mjs",
+    "build": "npm run build:preview && npm run build:plugin"
+  },
+  "dependencies": {
+    "jszip": "^3.10.1",
+    "lucide-react": "^0.460.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.9.0",
+    "@types/react": "^18.3.12",
+    "@types/react-dom": "^18.3.1",
+    "@vitejs/plugin-react": "^4.3.3",
+    "esbuild": "^0.24.0",
+    "jsdom": "^25.0.1",
+    "typescript": "^5.6.3",
+    "vite": "^5.4.10",
+    "vitest": "^2.1.4"
+  }
+}
