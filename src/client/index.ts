@@ -4,7 +4,7 @@ import {
   SELECTION_EVENT_SEND,
   SLIDE_EXTENSION_REGEX,
 } from '../core/constants';
-import { formatSelectionReferenceText, renderTencentDocsSelectionPrompt } from '../core/context-index';
+import { buildSelectionQuoteSummary, formatSelectionReferenceText, renderTencentDocsSelectionPrompt } from '../core/context-index';
 import { exportDeckToPptxBuffer } from '../core/ooxml';
 import type {
   DocumentSelectionEvent,
@@ -521,18 +521,20 @@ function applyRealDshClient(
   disposers.push(bus.on(SELECTION_EVENT_SEND, syncSelectionToServer));
 
   // 选区发送到对话：
-  //  - 纯引用（无 aiPrompt）：把人类可读的“引用描述”作为内联文字写入输入框；
+  //  - 纯引用（无 aiPrompt）：作为“引用芯片”(QuoteSummary)写入输入框，显示为特殊引用块；
   //  - AI 内联编辑（带 aiPrompt）：保留结构化 prompt 供 Agent 理解。
   bus.registerSendHandler(({ prompt, blocks, event }) => {
     const hasAiPrompt = Boolean(event.selection.aiPrompt?.trim());
+    const fileName = effectiveBridge.getDeckById(event.selection.fileId)?.file_name;
     const text = hasAiPrompt
       ? renderTencentDocsSelectionPrompt(blocks, prompt)
-      : formatSelectionReferenceText(event.selection, {
-          fileName: effectiveBridge.getDeckById(event.selection.fileId)?.file_name,
-        });
-    if (insertReferenceText(text)) {
+      : formatSelectionReferenceText(event.selection, { fileName });
+    const summary = hasAiPrompt
+      ? undefined
+      : buildSelectionQuoteSummary(event.selection, { fileName });
+    if (insertReferenceText(text, summary)) {
       effectiveBridge.onToast?.(
-        hasAiPrompt ? '已将选区与 AI 指令写入对话输入框' : '已将引用描述写入对话输入框',
+        hasAiPrompt ? '已将选区与 AI 指令写入对话输入框' : '已将引用写入对话输入框',
       );
       return;
     }
@@ -750,10 +752,24 @@ function applyRealDshClient(
     return null;
   };
 
-  // 把一段“引用描述文字”静态写入对话输入框（内联展示，非悬浮）。
-  const insertReferenceText = (text: string): boolean => {
+  // 把选区引用作为“引用芯片(chip)”写入对话输入框，而不是普通长文本。
+  // 走官方 InputActions.insertQuote(text, summary)：输入框里渲染成 QuotePreview
+  // 引用块（类似 skill 的特殊激活样式，可整体删除）；summary 提供 label/title/detail
+  // 作为芯片上的短标题，text 作为实际发送内容。
+  const insertReferenceText = (
+    text: string,
+    summary?: { label: string; title: string; detail?: string; body: string },
+  ): boolean => {
     const actions = latestInputActions;
     if (!actions) return false;
+    if (typeof (actions as any).insertQuote === 'function') {
+      try {
+        const ok = (actions as any).insertQuote(text, summary);
+        if (ok !== false) return true;
+      } catch {
+        /* fall through */
+      }
+    }
     if (typeof actions.insertText === 'function') {
       const span = actions.captureInsertion?.();
       const ok = actions.insertText(text, span as any);
