@@ -581,3 +581,51 @@ export function renderTencentDocsSelectionPrompt(
 
   return `${anchorLine}\n${xmlBody}`;
 }
+
+/**
+ * 生成给「对话输入框内联展示」用的人类可读引用描述文本。
+ * 描述引用了 PPT 的哪一页、什么位置的什么元素（含元素文字预览），
+ * 用于直接写入 composer，而不是显示成悬浮 chip 或 XML payload。
+ */
+export function formatSelectionReferenceText(
+  payload: SlideSelectionPayload,
+  options?: { fileName?: string }
+): string {
+  const page = payload.page_index + 1;
+  const fileName =
+    options?.fileName ||
+    payload.title?.split('·')[0]?.trim() ||
+    '演示文稿';
+  const mode = payload.selection_mode;
+
+  if (mode === 'whole-slide') {
+    const preview = (payload.elements || [])
+      .map((el) => el.text_preview)
+      .filter((t): t is string => Boolean(t))
+      .slice(0, 4)
+      .join(' · ');
+    return preview
+      ? `引用《${fileName}》第 ${page} 页（整页，共 ${payload.elements.length} 个元素）：${preview}`
+      : `引用《${fileName}》第 ${page} 页（整页，共 ${payload.elements.length} 个元素）`;
+  }
+
+  const modeLabel =
+    mode === 'free-marquee'
+      ? '框选区域'
+      : mode === 'multi-element'
+        ? '多选元素'
+        : mode === 'table-cells'
+          ? '表格选区'
+          : '元素';
+
+  const parts = (payload.elements || [])
+    .slice(0, 6)
+    .map((el, i) => {
+      const preview = el.text_preview?.trim();
+      const typeLabel = el.role || el.type || '元素';
+      return preview ? `${i + 1}. ${typeLabel}「${preview}」` : `${i + 1}. ${typeLabel}`;
+    });
+
+  const head = `引用《${fileName}》第 ${page} 页 · ${modeLabel}（共 ${payload.elements.length} 个元素）`;
+  return parts.length > 0 ? `${head}：\n${parts.join('\n')}` : head;
+}
