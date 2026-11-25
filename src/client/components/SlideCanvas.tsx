@@ -460,6 +460,7 @@ export const SlideCanvas: React.FC<SlideCanvasProps> = ({
               setEditingShapeId(null);
             }}
             onCancelInlineText={() => setEditingShapeId(null)}
+            deckId={deck.file_id}
           >
             {/* 智能对齐参考线 */}
             {snapGuides.v !== undefined && (

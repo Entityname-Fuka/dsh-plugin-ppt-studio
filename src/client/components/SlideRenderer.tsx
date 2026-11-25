@@ -23,7 +23,31 @@ export interface SlideRendererProps {
   editingShapeId?: string | null;
   onCommitInlineText?: (shapeId: string, newText: string) => void;
   onCancelInlineText?: () => void;
+  /** 当前 deck id，用于把相对/本地图片路径经资源端点解析 */
+  deckId?: string;
   children?: React.ReactNode;
+}
+
+/**
+ * 把图片 src 解析成浏览器可直接加载的 URL。
+ * - http(s)/data:/blob:/file: 原样返回；
+ * - 其余（本地绝对路径、相对路径）走 /dsh-ppt-studio/api/asset 资源端点，
+ *   由服务端读取本地文件后回传，避免 <img src="本地路径"> 加载不到。
+ */
+export function resolveImageSrc(
+  src: string | undefined,
+  options?: { deckId?: string; apiBase?: string },
+): string {
+  const raw = (src ?? '').trim();
+  if (!raw) return raw;
+  if (/^(https?:|data:|blob:)/i.test(raw)) return raw;
+  // file:// 交给浏览器（Electron 渲染进程可直接读本地文件）
+  if (/^file:/i.test(raw)) return raw;
+  const base = (options?.apiBase ?? '/dsh-ppt-studio/api').replace(/\/+$/, '');
+  const params = new URLSearchParams();
+  params.set('path', raw);
+  if (options?.deckId) params.set('deckId', options.deckId);
+  return `${base}/asset?${params.toString()}`;
 }
 
 export function normalizeHex(hex?: string): string {
@@ -627,6 +651,7 @@ export const SlideRenderer: React.FC<SlideRendererProps> = ({
   editingShapeId = null,
   onCommitInlineText,
   onCancelInlineText,
+  deckId,
   children,
 }) => {
   const stageWidthPx = ptToPx(widthPt);
@@ -776,7 +801,7 @@ export const SlideRenderer: React.FC<SlideRendererProps> = ({
 
               {el.type === 'image' && el.image && (
                 <img
-                  src={el.image.src}
+                  src={resolveImageSrc(el.image.src, { deckId })}
                   alt={el.image.alt || ''}
                   style={{
                     width: '100%',

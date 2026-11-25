@@ -1063,6 +1063,7 @@ export const PptWorkspace: React.FC<PptWorkspaceProps> = ({
                   widthPt={activeDeck.width_pt}
                   heightPt={activeDeck.height_pt}
                   scale={158 / (activeDeck.width_pt * PT_TO_PX_RATIO)}
+                  deckId={activeDeck.file_id}
                 />
               </div>
               <div style={{ fontSize: 11.5, marginTop: 5, color: '#374151', fontWeight: 500 }}>
@@ -1079,13 +1080,14 @@ export const PptWorkspace: React.FC<PptWorkspaceProps> = ({
               widthPt={activeDeck.width_pt}
               heightPt={activeDeck.height_pt}
               activePageIndex={activePageIndex}
+              deckId={activeDeck.file_id}
               onSelectPage={setActivePageIndex}
               onSelectWholeSlide={(idx) => {
                 setActivePageIndex(idx);
                 const payload = buildWholeSlideSelectionPayload(activeDeck, idx);
                 setSelectedShapeIds(payload.shape_ids);
-                emitSelectionChanged(payload);
-                notifyToast(`已将第 ${idx + 1} 页整页引用添加到对话输入框`);
+                emitSelectionSend(payload, '');
+                notifyToast(`已将第 ${idx + 1} 页整页引用描述写入对话输入框`);
               }}
               onAddPage={() => {
                 const res = engine.runTransaction(
@@ -1236,8 +1238,8 @@ export const PptWorkspace: React.FC<PptWorkspaceProps> = ({
               }
             }}
             onSendSelectionToComposer={(payload) => {
-              emitSelectionChanged(payload);
-              notifyToast('选区上下文已添加到对话输入框');
+              emitSelectionSend(payload, '');
+              notifyToast('已将选区引用描述写入对话输入框');
             }}
             onSendSelectionAiEdit={(payload, prompt) => {
               emitSelectionSend(payload, prompt);

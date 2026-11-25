@@ -154,7 +154,7 @@ export const DesktopShell: React.FC<DesktopShellProps> = ({ host: providedHost }
     : null;
 
   return (
-    <div className="dsh-desktop-shell">
+    <div className="dsh-plugin-root dsh-desktop-shell-root dsh-desktop-shell">
       {/* ==================== 左栏：任务与历史导航 ==================== */}
       <aside className="dsh-left-sidebar" aria-label="DSH 导航栏">
         <div className="dsh-window-topbar">

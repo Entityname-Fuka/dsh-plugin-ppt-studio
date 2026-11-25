@@ -4,7 +4,7 @@ import {
   SELECTION_EVENT_SEND,
   SLIDE_EXTENSION_REGEX,
 } from '../core/constants';
-import { renderTencentDocsSelectionPrompt } from '../core/context-index';
+import { buildSelectionQuoteSummary, formatSelectionReferenceText, renderTencentDocsSelectionPrompt } from '../core/context-index';
 import { exportDeckToPptxBuffer } from '../core/ooxml';
 import type {
   DocumentSelectionEvent,
@@ -520,20 +520,37 @@ function applyRealDshClient(
   disposers.push(bus.on(SELECTION_EVENT_CHANGED, syncSelectionToServer));
   disposers.push(bus.on(SELECTION_EVENT_SEND, syncSelectionToServer));
 
-  // 若真实宿主未自定义 sendHandler，支持画布内联 AI 编辑直发或注入到输入框
+  // 选区发送到对话：
+  //  - 纯引用（无 aiPrompt）：作为“引用芯片”(QuoteSummary)写入输入框，显示为特殊引用块；
+  //  - AI 内联编辑（带 aiPrompt）：保留结构化 prompt 供 Agent 理解。
   bus.registerSendHandler(({ prompt, blocks, event }) => {
-    const serialized = renderTencentDocsSelectionPrompt(blocks, prompt);
-    if (latestInputActions?.insertText) {
-      const span = latestInputActions.captureInsertion?.();
-      latestInputActions.insertText(serialized, span);
-      effectiveBridge.onToast?.('已将选区与 AI 指令写入对话输入框');
-    } else if (latestInputActions?.setDraft) {
-      latestInputActions.setDraft(serialized);
-      effectiveBridge.onToast?.('已将选区与 AI 指令写入对话草稿');
-    } else {
-      bus.handleSelectionChanged(event);
-      effectiveBridge.onToast?.('选区已加入对话芯片栏，可点击「插入引用」');
+    const hasAiPrompt = Boolean(event.selection.aiPrompt?.trim());
+    const fileName = effectiveBridge.getDeckById(event.selection.fileId)?.file_name;
+    const text = hasAiPrompt
+      ? renderTencentDocsSelectionPrompt(blocks, prompt)
+      : formatSelectionReferenceText(event.selection, { fileName });
+    const summary = hasAiPrompt
+      ? undefined
+      : buildSelectionQuoteSummary(event.selection, { fileName });
+    if (insertReferenceText(text, summary)) {
+      effectiveBridge.onToast?.(
+        hasAiPrompt ? '已将选区与 AI 指令写入对话输入框' : '已将引用写入对话输入框',
+      );
+      return;
     }
+    if (typeof effectiveBridge.onSendComposerPrompt === 'function') {
+      try {
+        effectiveBridge.onSendComposerPrompt(text, [], { source: 'ppt-studio' });
+        effectiveBridge.onToast?.('已将引用发送到对话');
+        return;
+      } catch {
+        /* fall through */
+      }
+    }
+    if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
+      navigator.clipboard.writeText(text).catch(() => {});
+    }
+    effectiveBridge.onToast?.('已复制引用内容到剪贴板（当前环境未提供输入框接口）');
   });
   disposers.push(() => bus.registerSendHandler(null));
 
@@ -647,12 +664,15 @@ function applyRealDshClient(
       }
     }, [address, deckIdFromUri, parsedAddress.filePath, parsedAddress.sessionId]);
 
-    return React.createElement(PptWorkspace, {
+    return React.createElement('div', {
+      className: 'dsh-plugin-root dsh-plugin-pane-root',
+      style: { width: '100%', height: '100%', minHeight: 0, display: 'flex' },
+    }, React.createElement(PptWorkspace, {
       ctx: effectiveCtx,
       selectionBus: bus,
       initialActiveDeckId: deckIdFromUri ?? props.activeDeckId,
       onCollapseSidebar: () => ctx.sidebarRight?.toggleExpanded?.(false),
-    });
+    }));
   };
 
   const TurnPptArtifactDock: React.FC<RealConversationTurnTailSlotProps> = (props) => {
@@ -691,30 +711,36 @@ function applyRealDshClient(
     };
 
     return React.createElement(
-      React.Fragment,
-      null,
-      artifacts.map((art) =>
-        React.createElement(ArtifactCard, {
-          key: art.id || art.fileName,
-          artifact: art,
-          onOpenArtifact: openArtifact,
-          onOpenWindow: (item) => {
-            openArtifact(item);
-            ctx.sidebarRight?.toggleExpanded?.(true);
-          },
-          onShareArtifact: (item) => {
-            const deck = item.fileId
-              ? effectiveBridge.getDeckById(item.fileId)
-              : effectiveBridge.getDecks().find((d) => d.file_name === item.fileName);
-            void exportArtifactToPptx(deck, effectiveBridge);
-          },
-          onViewAllArtifacts: () => openArtifact(art),
-        }),
+      'div',
+      { className: 'dsh-plugin-root' },
+      React.createElement(
+        React.Fragment,
+        null,
+        artifacts.map((art) =>
+          React.createElement(ArtifactCard, {
+            key: art.id || art.fileName,
+            artifact: art,
+            onOpenArtifact: openArtifact,
+            onOpenWindow: (item) => {
+              openArtifact(item);
+              ctx.sidebarRight?.toggleExpanded?.(true);
+            },
+            onShareArtifact: (item) => {
+              const deck = item.fileId
+                ? effectiveBridge.getDeckById(item.fileId)
+                : effectiveBridge.getDecks().find((d) => d.file_name === item.fileName);
+              void exportArtifactToPptx(deck, effectiveBridge);
+            },
+            onViewAllArtifacts: () => openArtifact(art),
+          }),
+        ),
       ),
     );
   };
 
-  const ComposerSelectionDock: React.FC<RealConversationInputDockSlotProps> = (props) => {
+  // 只用于捕获宿主注入的 inputActions（不渲染任何悬浮 UI）。
+  // 选区引用改为“内联文字”直接写入输入框，不再显示 chip 悬浮窗。
+  const ComposerInputCapture: React.FC<RealConversationInputDockSlotProps> = (props) => {
     useEffect(() => {
       latestInputActions = props.inputActions ?? null;
       return () => {
@@ -723,43 +749,37 @@ function applyRealDshClient(
         }
       };
     }, [props.inputActions]);
+    return null;
+  };
 
-    return React.createElement(SelectionChipBar, {
-      selectionBus: bus,
-      onFocusSelection: (target) => {
-        effectiveBridge.triggerFocusTarget(target);
-        const targetFileId = target.fileId || effectiveBridge.getActiveDeckId();
-        if (targetFileId) {
-          void ctx.sidebarRight?.openResource(
-            `${RESOURCE_DECK_PREFIX}${encodeURIComponent(targetFileId)}`,
-          );
-        }
-        const expanded =
-          typeof ctx.sidebarRight?.isExpanded === 'function'
-            ? ctx.sidebarRight.isExpanded()
-            : ctx.sidebarRight?.isExpanded;
-        if (expanded === false || expanded === undefined) {
-          ctx.sidebarRight?.toggleExpanded?.(true);
-        }
-      },
-      onCopyToast: (msg) => effectiveBridge.onToast?.(msg),
-      onInsertPrompt: (serializedPrompt) => {
-        const actions = props.inputActions;
-        if (actions?.insertText) {
-          const span = actions.captureInsertion?.();
-          actions.insertText(serializedPrompt, span);
-          effectiveBridge.onToast?.('已将选区引用插入到对话输入框');
-        } else if (actions?.setDraft) {
-          actions.setDraft(serializedPrompt);
-          effectiveBridge.onToast?.('已将选区引用写入对话草稿');
-        } else {
-          if (typeof navigator !== 'undefined' && navigator.clipboard?.writeText) {
-            navigator.clipboard.writeText(serializedPrompt).catch(() => {});
-          }
-          effectiveBridge.onToast?.('已复制选区引用');
-        }
-      },
-    });
+  // 把选区引用作为“引用芯片(chip)”写入对话输入框，而不是普通长文本。
+  // 走官方 InputActions.insertQuote(text, summary)：输入框里渲染成 QuotePreview
+  // 引用块（类似 skill 的特殊激活样式，可整体删除）；summary 提供 label/title/detail
+  // 作为芯片上的短标题，text 作为实际发送内容。
+  const insertReferenceText = (
+    text: string,
+    summary?: { label: string; title: string; detail?: string; body: string },
+  ): boolean => {
+    const actions = latestInputActions;
+    if (!actions) return false;
+    if (typeof (actions as any).insertQuote === 'function') {
+      try {
+        const ok = (actions as any).insertQuote(text, summary);
+        if (ok !== false) return true;
+      } catch {
+        /* fall through */
+      }
+    }
+    if (typeof actions.insertText === 'function') {
+      const span = actions.captureInsertion?.();
+      const ok = actions.insertText(text, span as any);
+      if (ok !== false) return true;
+    }
+    if (typeof actions.setDraft === 'function') {
+      actions.setDraft(text);
+      return true;
+    }
+    return false;
   };
 
   // 入口 2：注册右侧栏标签 + Guide 新建入口
@@ -828,11 +848,12 @@ function applyRealDshClient(
     disposers.push(disposeArtifact);
   }
 
-  // 入口 3：对话输入框选区芯片双向回跳槽位
+  // 入口 3：隐藏捕获输入框能力（inputActions），不渲染任何悬浮 UI。
+  // 选区引用改为“内联文字”写入输入框，不再显示 chip 悬浮窗。
   const disposeComposer = ctx.slots.inject('conversation.input.dock', () =>
     ctx.slots.register(
-      { name: 'conversation.input.dock', id: 'dsh-plugin-ppt-studio-selection' },
-      ComposerSelectionDock,
+      { name: 'conversation.input.dock', id: 'dsh-plugin-ppt-studio-input-capture' },
+      ComposerInputCapture,
     ),
   );
   if (typeof disposeComposer === 'function') {

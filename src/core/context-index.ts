@@ -581,3 +581,96 @@ export function renderTencentDocsSelectionPrompt(
 
   return `${anchorLine}\n${xmlBody}`;
 }
+
+/**
+ * 生成给「对话输入框内联展示」用的人类可读引用描述文本。
+ * 描述引用了 PPT 的哪一页、什么位置的什么元素（含元素文字预览）。
+ */
+export function formatSelectionReferenceText(
+  payload: SlideSelectionPayload,
+  options?: { fileName?: string }
+): string {
+  const page = payload.page_index + 1;
+  const fileName =
+    options?.fileName ||
+    payload.title?.split('·')[0]?.trim() ||
+    '演示文稿';
+  const mode = payload.selection_mode;
+
+  if (mode === 'whole-slide') {
+    const preview = (payload.elements || [])
+      .map((el) => el.text_preview)
+      .filter((t): t is string => Boolean(t))
+      .slice(0, 4)
+      .join(' · ');
+    return preview
+      ? `引用《${fileName}》第 ${page} 页（整页，共 ${payload.elements.length} 个元素）：${preview}`
+      : `引用《${fileName}》第 ${page} 页（整页，共 ${payload.elements.length} 个元素）`;
+  }
+
+  const modeLabel = selectionModeLabel(mode);
+  const parts = (payload.elements || [])
+    .slice(0, 6)
+    .map((el, i) => {
+      const preview = el.text_preview?.trim();
+      const typeLabel = el.role || el.type || '元素';
+      return preview ? `${i + 1}. ${typeLabel}「${preview}」` : `${i + 1}. ${typeLabel}`;
+    });
+
+  const head = `引用《${fileName}》第 ${page} 页 · ${modeLabel}（共 ${payload.elements.length} 个元素）`;
+  return parts.length > 0 ? `${head}：\n${parts.join('\n')}` : head;
+}
+
+function selectionModeLabel(mode: SlideSelectionPayload['selection_mode']): string {
+  switch (mode) {
+    case 'free-marquee':
+      return '框选区域';
+    case 'multi-element':
+      return '多选元素';
+    case 'table-cells':
+      return '表格选区';
+    case 'whole-slide':
+      return '整页';
+    default:
+      return '元素';
+  }
+}
+
+/**
+ * 生成输入框内联“引用芯片”的 QuoteSummary（label/title/detail/body）。
+ * 芯片上显示 label + title(+detail)，body 为完整描述，作为可展开的引用内容。
+ * 这样引用在输入框里呈现为特殊的引用块/chip，而不是一长段纯文本。
+ */
+export function buildSelectionQuoteSummary(
+  payload: SlideSelectionPayload,
+  options?: { fileName?: string }
+): { label: string; title: string; detail?: string; body: string } {
+  const page = payload.page_index + 1;
+  const fileName =
+    options?.fileName || payload.title?.split('·')[0]?.trim() || '演示文稿';
+  const body = formatSelectionReferenceText(payload, options);
+  const modeLabel = selectionModeLabel(payload.selection_mode);
+
+  if (payload.selection_mode === 'whole-slide') {
+    return {
+      label: 'PPT 引用',
+      title: `${fileName} · 第 ${page} 页（整页）`,
+      detail: `${payload.elements.length} 个元素`,
+      body,
+    };
+  }
+
+  const firstPreview =
+    (payload.elements || []).map((el) => el.text_preview?.trim()).find(Boolean) || '';
+  const pLabel = (payload.elements || [])[0]?.role || (payload.elements || [])[0]?.type || '';
+  const detailParts = [`${payload.elements.length} 个元素`];
+  if (pLabel) detailParts.unshift(pLabel);
+  if (firstPreview) detailParts.push(`「${firstPreview.slice(0, 18)}」`);
+
+  return {
+    label: 'PPT 引用',
+    title: `${fileName} · 第 ${page} 页 · ${modeLabel}`,
+    detail: detailParts.join(' · '),
+    body,
+  };
+}

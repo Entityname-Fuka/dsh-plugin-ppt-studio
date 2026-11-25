@@ -169,7 +169,7 @@ export const SlideshowModal: React.FC<SlideshowModalProps> = ({
   const modalContent = (
     <div
       ref={containerRef}
-      className={`ppt-slideshow-backdrop ${controlsVisible ? '' : 'is-idle'}`}
+      className={`ppt-slideshow-backdrop dsh-plugin-root ${controlsVisible ? '' : 'is-idle'}`}
       role="dialog"
       aria-modal="true"
       aria-label="全屏放映模式"
@@ -185,6 +185,7 @@ export const SlideshowModal: React.FC<SlideshowModalProps> = ({
           widthPt={deck.width_pt}
           heightPt={deck.height_pt}
           scale={scale}
+          deckId={deck.file_id}
         />
       </div>
 

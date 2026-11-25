@@ -733,6 +733,71 @@ export function registerPptStudioRoutes(
         return;
       }
 
+      // 8b. GET /dsh-ppt-studio/api/asset?path=...&deckId=...
+      // 把本地图片文件代理成 HTTP 资源，供插件页面 <img> 显示。
+      // 支持：绝对路径(path)、或相对某 deck 目录的路径(deckId + 相对 path)。
+      if (method === 'GET' && subPath === '/asset') {
+        const rawPath = (url.searchParams.get('path') ?? '').trim();
+        const deckId = (url.searchParams.get('deckId') ?? '').trim();
+        if (!rawPath || /[\0]/.test(rawPath)) {
+          sendJson(res, 400, { ok: false, error: 'Missing path' });
+          return;
+        }
+        const [fsMod, pathMod] = await Promise.all([loadNodeFs(), loadNodePath()]);
+        let targetPath = rawPath;
+        if (!pathMod.isAbsolute(targetPath)) {
+          const deck = deckId ? registry.getEngine(deckId).getDeck() : undefined;
+          const deckDir = deck?.file_path
+            ? pathMod.dirname(deck.file_path)
+            : undefined;
+          if (deckDir) {
+            targetPath = pathMod.resolve(deckDir, targetPath);
+          } else {
+            // 无 deck 目录可参考时，尝试用现有解析器（含会话 cwd）
+            try {
+              targetPath = await resolveTargetFilePath(ctx, targetPath, undefined, pathMod);
+            } catch {
+              /* keep as-is */
+            }
+          }
+        } else {
+          targetPath = pathMod.resolve(targetPath);
+        }
+        let buf: Buffer;
+        try {
+          buf = await fsMod.readFile(targetPath);
+        } catch (err) {
+          const code = (err as NodeJS.ErrnoException)?.code;
+          sendJson(res, code === 'ENOENT' ? 404 : 400, {
+            ok: false,
+            error: err instanceof Error ? err.message : String(err),
+          });
+          return;
+        }
+        const ext = pathMod.extname(targetPath).toLowerCase();
+        const mime =
+          ext === '.png'
+            ? 'image/png'
+            : ext === '.jpg' || ext === '.jpeg'
+              ? 'image/jpeg'
+              : ext === '.gif'
+                ? 'image/gif'
+                : ext === '.webp'
+                  ? 'image/webp'
+                  : ext === '.svg'
+                    ? 'image/svg+xml'
+                    : ext === '.bmp'
+                      ? 'image/bmp'
+                      : 'application/octet-stream';
+        res.writeHead(200, {
+          'content-type': mime,
+          'content-length': String(buf.byteLength),
+          'cache-control': 'no-store',
+        });
+        res.end(buf);
+        return;
+      }
+
       // 9. POST /dsh-ppt-studio/api/selections
       if (method === 'POST' && subPath === '/selections') {
         const body = await readJsonBody(req);
